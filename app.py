@@ -1,7 +1,7 @@
-__import__("pysqlite3")
-import sys
+# __import__("pysqlite3")
+# import sys
 
-sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+# sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 
 import os
 from dotenv import load_dotenv
@@ -142,29 +142,33 @@ def main():
         "Upload your PDFs here and click on 'process'",
         accept_multiple_files=True,
     )
+    if not pdf_docs:
+        st.info("Kindly upload a pdf to chat :)")
+    with st.sidebar:
+        if st.sidebar.button("Process"):
 
-    if st.sidebar.button("Process"):
+            if pdf_docs:
 
-        if pdf_docs:
-            with st.spinner(
-                "Processing"
-            ):  # all processes within spinner will run while the user sees the processing animation
+                with st.spinner(
+                    "Processing"
+                ):  # all processes within spinner will run while the user sees the processing animation
 
-                # get pdf text
-                st.session_state.raw_text = get_pdf_text(pdf_docs)
+                    # get pdf text
+                    st.session_state.raw_text = get_pdf_text(pdf_docs)
 
-                # get the text chunks
-                text_chunks = get_text_chunks(st.session_state.raw_text)
-                # st.write(text_chunks)
+                    # get the text chunks
+                    text_chunks = get_text_chunks(st.session_state.raw_text)
+                    # st.write(text_chunks)
 
-                # create vector store with embeddings
-                vectorstore = get_vectorstore(text_chunks)
+                    # create vector store with embeddings
+                    vectorstore = get_vectorstore(text_chunks)
 
-                # create conversation chain
-                st.session_state.rag_chain = get_conversation_chain(vectorstore)
-        else:
-            print(st.session_state.raw_text)
-            st.sidebar.error("Kindly enter a pdf")
+                    # create conversation chain
+                    st.session_state.rag_chain = get_conversation_chain(vectorstore)
+                st.success("You are ready to chat!!")
+            else:
+                print(st.session_state.raw_text)
+                st.sidebar.error("Kindly enter a pdf")
     if st.session_state.raw_text != "" and pdf_docs:
         user_input = st.chat_input("Ask a question about your documents:")
         if user_input:
