@@ -1,0 +1,8 @@
+langchain==0.2.6
+langchain_chroma==0.1.2
+langchain_core==0.2.10
+langchain_groq==0.1.5
+langchain_huggingface==0.0.3
+PyPDF2==3.0.1
+python-dotenv==1.0.1
+streamlit==1.35.0
