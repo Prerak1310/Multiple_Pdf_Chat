@@ -6,7 +6,7 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from langchain_core.prompts import MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever
@@ -37,14 +37,7 @@ def get_text_chunks(raw_text):
 
 
 def get_vectorstore(text_chunks):
-    vectorstore = Chroma.from_texts(text_chunks, HuggingFaceEmbeddings())
-    get_vectorstore_object = vectorstore.get()
-    ids_to_del = []
-    for idx in range(0, len(get_vectorstore_object["ids"])):
-        ids_to_del.append(get_vectorstore_object["ids"][idx])
-    vectorstore._collection.delete(ids_to_del)
-    vectorstore = Chroma.from_texts(text_chunks, HuggingFaceEmbeddings())
-
+    vectorstore = FAISS.from_texts(text_chunks, HuggingFaceEmbeddings())
     return vectorstore
 
 
