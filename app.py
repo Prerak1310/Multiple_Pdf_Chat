@@ -124,6 +124,36 @@ def main():
     if "raw_text" not in st.session_state:
         st.session_state["raw_text"] = ""
 
+    pdf_docs = st.file_uploader(  # pdf_docs will be of type "list"
+        "Upload your PDFs here and click on 'process'",
+        accept_multiple_files=True,
+        disabled=False,
+    )
+    if not pdf_docs:
+        st.info("Kindly upload a pdf to chat :)")
+    if st.button("Process"):
+        if pdf_docs:
+
+            with st.spinner(
+                "Kindly wait while we process your documents"
+            ):  # all processes within spinner will run while the user sees the processing animation
+
+                # get pdf text
+                st.session_state.raw_text = get_pdf_text(pdf_docs)
+
+                # get the text chunks
+                text_chunks = get_text_chunks(st.session_state.raw_text)
+                # st.write(text_chunks)
+
+                # create vector store with embeddings
+                vectorstore = get_vectorstore(text_chunks)
+
+                # create conversation chain
+                st.session_state.rag_chain = get_conversation_chain(vectorstore)
+            st.toast("You are ready to chat", icon="🎉")
+        else:
+            print(st.session_state.raw_text)
+            st.toast("Kindly enter a pdf", icon="⚠️")
     for i in range(0, len(st.session_state.chat_history)):
         if i & 1:
             with st.chat_message("user"):
@@ -132,39 +162,8 @@ def main():
             with st.chat_message("assistant"):
                 st.markdown(st.session_state.chat_history[i].content)
 
-    st.sidebar.subheader("Your documents")
-    pdf_docs = st.sidebar.file_uploader(  # pdf_docs will be of type "list"
-        "Upload your PDFs here and click on 'process'",
-        accept_multiple_files=True,
-    )
-    if not pdf_docs:
-        st.info("Kindly upload a pdf to chat :)")
-    with st.sidebar:
-        if st.sidebar.button("Process"):
-
-            if pdf_docs:
-
-                with st.spinner(
-                    "Processing"
-                ):  # all processes within spinner will run while the user sees the processing animation
-
-                    # get pdf text
-                    st.session_state.raw_text = get_pdf_text(pdf_docs)
-
-                    # get the text chunks
-                    text_chunks = get_text_chunks(st.session_state.raw_text)
-                    # st.write(text_chunks)
-
-                    # create vector store with embeddings
-                    vectorstore = get_vectorstore(text_chunks)
-
-                    # create conversation chain
-                    st.session_state.rag_chain = get_conversation_chain(vectorstore)
-                st.success("You are ready to chat!!")
-            else:
-                print(st.session_state.raw_text)
-                st.sidebar.error("Kindly enter a pdf")
     if st.session_state.raw_text != "" and pdf_docs:
+
         user_input = st.chat_input("Ask a question about your documents:")
         if user_input:
             with st.chat_message("user"):
