@@ -1,4 +1,4 @@
-# CHAT WITH MULTIPLE PDFs 📚
+![multi-pdf-chat-demo](https://github.com/Prerak1310/Multiple_Pdf_Chat/assets/119961142/8f2cc8ea-6ea0-464b-9eee-6f6b7d5a3c68)# CHAT WITH MULTIPLE PDFs 📚
 
 ## A streamlit RAG web app that allows users to upload text pdfs to the app and ask questions related to it.
 
@@ -18,5 +18,14 @@
 ---
 ### **RESULT**
 ![image](https://github.com/Prerak1310/Multiple_Pdf_Chat/assets/119961142/cfc8c868-19bc-4bb5-9996-b41be9694098)
+---
+
+### **DEMO**
+https://github.com/Prerak1310/Multiple_Pdf_Chat/assets/119961142/d0123406-0153-4225-876a-4d059439ddaa
+
+
+
+
+
 
 
