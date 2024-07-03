@@ -40,6 +40,9 @@ def get_text_chunks(raw_text):
 
 # function to return a vectorstore with embeddings of the the chunks
 def get_vectorstore(text_chunks):
+    if text_chunks == []:
+        st.error("The above file couln't be processed", icon="⚠️")
+        return
     vectorstore = FAISS.from_texts(text_chunks, HuggingFaceEmbeddings())
     return vectorstore
 
@@ -54,55 +57,58 @@ llm = ChatGroq(
 
 # setting up the RAG chain
 def get_conversation_chain(vectorstore):
+    if vectorstore:
+        retriever = vectorstore.as_retriever()
 
-    retriever = vectorstore.as_retriever()
+        contextualize_q_system_prompt = (
+            "Given a chat history and the latest user question "
+            "which might reference context in the chat history, "
+            "formulate a standalone question which can be understood "
+            "without the chat history. Do NOT answer the question, "
+            "just reformulate it if needed and otherwise return it as is."
+        )
 
-    contextualize_q_system_prompt = (
-        "Given a chat history and the latest user question "
-        "which might reference context in the chat history, "
-        "formulate a standalone question which can be understood "
-        "without the chat history. Do NOT answer the question, "
-        "just reformulate it if needed and otherwise return it as is."
-    )
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", contextualize_q_system_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+        history_aware_retriever = create_history_aware_retriever(
+            llm, retriever, contextualize_q_prompt
+        )
 
-    contextualize_q_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", contextualize_q_system_prompt),
-            MessagesPlaceholder("chat_history"),
-            ("human", "{input}"),
-        ]
-    )
-    history_aware_retriever = create_history_aware_retriever(
-        llm, retriever, contextualize_q_prompt
-    )
+        system_prompt = (
+            "You are an assistant for question-answering tasks. "
+            "Use the following pieces of retrieved context to answer "
+            "the question. If the question is not related to the context provided,say that you "
+            "don't know the answer. Use three sentences maximum and keep the "
+            "answer concise."
+            "\n\n"
+            "{context}"
+        )
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
 
-    system_prompt = (
-        "You are an assistant for question-answering tasks. "
-        "Use the following pieces of retrieved context to answer "
-        "the question. If you don't know the answer, say that you "
-        "don't know. Use three sentences maximum and keep the "
-        "answer concise."
-        "\n\n"
-        "{context}"
-    )
-    qa_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system_prompt),
-            MessagesPlaceholder("chat_history"),
-            ("human", "{input}"),
-        ]
-    )
+        question_answer_chain = create_stuff_documents_chain(
+            llm,
+            qa_prompt,
+        )
 
-    question_answer_chain = create_stuff_documents_chain(
-        llm,
-        qa_prompt,
-    )
-
-    rag_chain = create_retrieval_chain(
-        history_aware_retriever,
-        question_answer_chain,
-    )
-    return rag_chain
+        rag_chain = create_retrieval_chain(
+            history_aware_retriever,
+            question_answer_chain,
+        )
+        st.toast("You are ready to chat", icon="🎉")
+        return rag_chain
+    else:
+        return
 
 
 def main():
@@ -152,7 +158,7 @@ def main():
 
                 # create conversation chain
                 st.session_state.rag_chain = get_conversation_chain(vectorstore)
-            st.toast("You are ready to chat", icon="🎉")
+
         else:
             print(st.session_state.raw_text)
             st.toast("Kindly enter a pdf", icon="⚠️")
