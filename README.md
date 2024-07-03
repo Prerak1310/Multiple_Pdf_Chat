@@ -11,3 +11,12 @@
 6. Inside the .env file place your API key in this format `GROQ_API_KEY_GIT = "------------YOUR API KEY---------------"`
 7. Inside terminal run `streamlit run app.py` to run your app
 8. Enjoy :D
+---
+
+### **Concept**
+![logic](https://github.com/Prerak1310/Multiple_Pdf_Chat/assets/119961142/c942ebf9-8bca-4854-b4ce-295645232e98)
+---
+### **RESULT**
+![image](https://github.com/Prerak1310/Multiple_Pdf_Chat/assets/119961142/cfc8c868-19bc-4bb5-9996-b41be9694098)
+
+
