@@ -110,99 +110,101 @@ def get_conversation_chain(vectorstore):
     else:
         return
 
-
 def main():
     # setting up page title
     st.set_page_config(
         page_title="Chat with multiple PDFs",
         page_icon=":books:",
+        layout="wide",  # optional: set layout to wide for more space
     )
     st.title("Chat with multiple PDFs :books:")
 
-    # INTIALIZING SESSION STATE VARIABLES
-    # this is the chat history for the GROQ model
+    # Sidebar for Navigation
+    with st.sidebar:
+        st.header("Navigation")
+        selection = st.radio(
+            "Go to",
+            ("Upload & Process PDFs", "Chat with PDFs", "View Chat History"),
+            index=0
+        )
+
+    # INITIALIZING SESSION STATE VARIABLES
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    # this chat history is for displaying previous messages sent by user
     if "display_chat_history" not in st.session_state:
         st.session_state.display_chat_history = []
 
     if "raw_text" not in st.session_state:
         st.session_state["raw_text"] = ""
 
-    # file uploader to allow users to upload files
-    pdf_docs = st.file_uploader(  # pdf_docs will be of type "list"
-        "Upload your PDFs here and click on 'process'",
-        accept_multiple_files=True,
-        disabled=False,
-    )
-    if not pdf_docs:
-        st.info("Kindly upload a pdf to chat :)")
-    if st.button("Process"):
-        if pdf_docs:
+    # Conditional display based on sidebar selection
+    if selection == "Upload & Process PDFs":
+        # file uploader to allow users to upload files
+        pdf_docs = st.file_uploader(
+            "Upload your PDFs here and click on 'Process'",
+            accept_multiple_files=True,
+            disabled=False,
+        )
+        if not pdf_docs:
+            st.info("Kindly upload a pdf to chat :)")
+        if st.button("Process"):
+            if pdf_docs:
+                with st.spinner("Kindly wait while we process your documents"):
+                    # get pdf text
+                    st.session_state.raw_text = get_pdf_text(pdf_docs)
+                    # get the text chunks
+                    text_chunks = get_text_chunks(st.session_state.raw_text)
+                    # create vector store with embeddings
+                    vectorstore = get_vectorstore(text_chunks)
+                    # create conversation chain
+                    st.session_state.rag_chain = get_conversation_chain(vectorstore)
+            else:
+                st.toast("Kindly enter a pdf", icon="⚠️")
 
-            with st.spinner(
-                "Kindly wait while we process your documents"
-            ):  # all processes within spinner will run while the user sees the processing animation
-
-                # get pdf text
-                st.session_state.raw_text = get_pdf_text(pdf_docs)
-
-                # get the text chunks
-                text_chunks = get_text_chunks(st.session_state.raw_text)
-                # st.write(text_chunks)
-
-                # create vector store with embeddings
-                vectorstore = get_vectorstore(text_chunks)
-
-                # create conversation chain
-                st.session_state.rag_chain = get_conversation_chain(vectorstore)
-
-        else:
-            print(st.session_state.raw_text)
-            st.toast("Kindly enter a pdf", icon="⚠️")
-
-    for chat in st.session_state.display_chat_history:
-        with st.chat_message(chat["role"]):
-            st.markdown(chat["content"])
-
-    if st.session_state.raw_text != "" and pdf_docs:
-        # getting input prompt from user
-        user_input = st.chat_input("Ask a question about your documents:")
-        if user_input:
-            # display the user input
-            with st.chat_message("user"):
-                st.markdown(user_input)
-            # append user input to display chat history
-            st.session_state.display_chat_history.append(
-                {"role": "user", "content": user_input}
-            )
-
-            try:
-                # generate response
-                response = st.session_state.rag_chain.invoke(
-                    {"input": user_input, "chat_history": st.session_state.chat_history}
-                )
-                # display response to user
-                with st.chat_message("assistant"):
-                    st.markdown(response["answer"])
-                # append response to display chat history
+    elif selection == "Chat with PDFs":
+        if st.session_state.raw_text != "" and st.session_state.rag_chain:
+            user_input = st.chat_input("Ask a question about your documents:")
+            if user_input:
+                # Display the user input
+                with st.chat_message("user"):
+                    st.markdown(user_input)
+                # Append user input to display chat history
                 st.session_state.display_chat_history.append(
-                    {"role": "assistant", "content": response["answer"]}
+                    {"role": "user", "content": user_input}
                 )
+                try:
+                    # Generate response
+                    response = st.session_state.rag_chain.invoke(
+                        {"input": user_input, "chat_history": st.session_state.chat_history}
+                    )
+                    # Display response to user
+                    with st.chat_message("assistant"):
+                        st.markdown(response["answer"])
+                    # Append response to display chat history
+                    st.session_state.display_chat_history.append(
+                        {"role": "assistant", "content": response["answer"]}
+                    )
+                    # Appending the user and bot responses to the chat history for the model
+                    st.session_state.chat_history.extend(
+                        [
+                            HumanMessage(content=user_input),
+                            AIMessage(content=response["answer"]),
+                        ]
+                    )
+                except:
+                    st.error("You have exhausted your API limits!!")
+        else:
+            st.info("Please upload and process PDFs first!")
 
-                # appending the user and bot responses to the chat history for the model
-                st.session_state.chat_history.extend(
-                    [
-                        HumanMessage(content=user_input),
-                        AIMessage(content=response["answer"]),
-                    ]
-                )
-
-            except:
-                st.error("You have exhausted your API limits!!")
-
+    elif selection == "View Chat History":
+        st.header("Chat History")
+        if st.session_state.display_chat_history:
+            for chat in st.session_state.display_chat_history:
+                with st.chat_message(chat["role"]):
+                    st.markdown(chat["content"])
+        else:
+            st.info("No chat history available yet!")
 
 if __name__ == "__main__":
     main()
