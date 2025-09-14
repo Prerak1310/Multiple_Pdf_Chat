@@ -1,19 +1,18 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 import streamlit as st
-from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_groq import ChatGroq
-from langchain_core.prompts import MessagesPlaceholder
-from langchain.chains import create_history_aware_retriever
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain.chains import create_retrieval_chain
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_huggingface import HuggingFaceEmbeddings
+from PyPDF2 import PdfReader
 
 
 # function to get raw text from pages in multiple PDFs
@@ -49,10 +48,7 @@ def get_vectorstore(text_chunks):
 
 # setting up the chatbot
 groq_api_key = os.getenv("GROQ_API_KEY_GIT")
-llm = ChatGroq(
-    model="llama3-8b-8192",
-    api_key=groq_api_key,
-)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=groq_api_key)
 
 
 # setting up the RAG chain
@@ -110,6 +106,7 @@ def get_conversation_chain(vectorstore):
     else:
         return
 
+
 def main():
     # setting up page title
     st.set_page_config(
@@ -125,7 +122,7 @@ def main():
         selection = st.radio(
             "Go to",
             ("Upload & Process PDFs", "Chat with PDFs", "View Chat History"),
-            index=0
+            index=0,
         )
 
     # INITIALIZING SESSION STATE VARIABLES
@@ -176,7 +173,10 @@ def main():
                 try:
                     # Generate response
                     response = st.session_state.rag_chain.invoke(
-                        {"input": user_input, "chat_history": st.session_state.chat_history}
+                        {
+                            "input": user_input,
+                            "chat_history": st.session_state.chat_history,
+                        }
                     )
                     # Display response to user
                     with st.chat_message("assistant"):
@@ -205,6 +205,7 @@ def main():
                     st.markdown(chat["content"])
         else:
             st.info("No chat history available yet!")
+
 
 if __name__ == "__main__":
     main()
