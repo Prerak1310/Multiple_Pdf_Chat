@@ -1,4 +1,5 @@
 import os
+import time
 
 from dotenv import load_dotenv
 
@@ -47,8 +48,8 @@ def get_vectorstore(text_chunks):
 
 
 # setting up the chatbot
-groq_api_key = os.getenv("GROQ_API_KEY_GIT")
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=groq_api_key)
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=gemini_api_key)
 
 
 # setting up the RAG chain
@@ -148,6 +149,7 @@ def main():
         if st.button("Process"):
             if pdf_docs:
                 with st.spinner("Kindly wait while we process your documents"):
+                    start = time.time()
                     # get pdf text
                     st.session_state.raw_text = get_pdf_text(pdf_docs)
                     # get the text chunks
@@ -156,6 +158,8 @@ def main():
                     vectorstore = get_vectorstore(text_chunks)
                     # create conversation chain
                     st.session_state.rag_chain = get_conversation_chain(vectorstore)
+                    end = time.time()
+                    print(f"preprocessing done in {end-start:2f}s")
             else:
                 st.toast("Kindly enter a pdf", icon="⚠️")
 
@@ -172,12 +176,15 @@ def main():
                 )
                 try:
                     # Generate response
+                    start = time.time()
                     response = st.session_state.rag_chain.invoke(
                         {
                             "input": user_input,
                             "chat_history": st.session_state.chat_history,
                         }
                     )
+                    end = time.time()
+                    print(f"response generated in {end-start:2f}s")
                     # Display response to user
                     with st.chat_message("assistant"):
                         st.markdown(response["answer"])
